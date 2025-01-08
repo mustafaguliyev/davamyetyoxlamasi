@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="az">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Davamiyyət Yoxlama Sistemi</title>
+    <style>
+      body {
+        margin: 0;
+        height: 100vh; 
+        display: flex;
+        justify-content: center; 
+        align-items: center; 
+        font-family: Arial, sans-serif;
+        background-color: #f1f1f1;
+        color: white;
+        overflow: hidden;
+        
+      }
+
+      /* Containerin stilləri */
+      .container {
+        background-color: #302b63;
+        border-radius: 10px;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        text-align: center;
+        padding: 30px;fir
+        width: 100%;
+        max-width: 600px; /* Konteynerin eninin maksimumu */
+        height: 80vh; /* Konteynerin hündürlüyü ekranın 80%-i qədər */
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        overflow: auto; /* İçindəki məzmunu scroll etməyə icazə verir */
+        animation: fadeIn 1s forwards;
+      }
+
+      /* Fade in animasiyası */
+      @keyframes fadeIn {
+        0% {
+          opacity: 0;
+        }
+        100% {
+          opacity: 1;
+        }
+      }
+
+      h1 {
+        font-size: 2.5em;
+        margin-bottom: 20px;
+      }
+
+      input,
+      button {
+        margin: 10px 0;
+        padding: 12px;
+        font-size: 16px;
+        width: 100%;
+        border-radius: 5px;
+        border: none;
+      }
+
+      button {
+        background-color: #0f0c29;
+        color: white;
+        cursor: pointer;
+      }
+
+      button:hover {
+        background-color: #1b1b1b;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+        text-align: left;
+        flex-grow: 1; /* Cədvəlin konteyneri doldurmasını təmin edir */
+      }
+
+      th, td {
+        padding: 12px;
+        border: 1px solid #ddd;
+        font-size: 1.1em;
+      }
+
+      th {
+        background-color: #444;
+      }
+
+      td {
+        background-color: #333;
+      }
+
+      td button {
+        margin: 2px 5px;
+        padding: 5px 10px;
+        font-size: 0.9em;
+      }
+
+      .header {
+        font-size: 3em;
+        transform: scale(1.1);
+      }
+
+      /* Arxa fon rəng dəyişikliyi animasiyası */
+      @keyframes changeBg {
+        0% {
+          background-color: #0f0c29;
+        }
+        25% {
+          background-color: #302b63;
+        }
+        50% {
+          background-color: #24243e;
+        }
+        75% {
+          background-color: #1b1b1b;
+        }
+        100% {
+          background-color: #0f0c29;
+        }
+      }
+
+      body {
+        animation: changeBg 10s infinite;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1 class="header">Davamiyyət Yoxlama</h1>
+      <input type="text" id="studentName" placeholder="Tələbənin adını daxil edin" />
+      <button onclick="addStudent()">Əlavə et</button>
+      <h2>Tələbə siyahısı</h2>
+      <table id="attendanceTable">
+        <thead>
+          <tr>
+            <th>Gün</th>
+            <th>Tələbə adı</th>
+            <th>Davamiyyət</th>
+            <th>Əməliyyat</th>
+          </tr>
+        </thead>
+        <tbody id="studentList"></tbody>
+      </table>
+    </div>
+
+    <script>
+      // LocalStorage
+      const students = JSON.parse(localStorage.getItem("students")) || [];
+
+      // Yeniləmə
+      function updateStudentList() {
+        const studentList = document.getElementById("studentList");
+        studentList.innerHTML = "";
+        students.forEach((student, index) => {
+          const tr = document.createElement("tr");
+
+          // Həftənin günü
+          const day = new Date(student.date).toLocaleString('az-AZ', { weekday: 'long' });
+          
+          const tdDay = document.createElement("td");
+          tdDay.textContent = day;
+
+          const tdName = document.createElement("td");
+          tdName.textContent = student.name;
+
+          const tdStatus = document.createElement("td");
+          tdStatus.textContent = student.present ? "✅" : "❌";
+
+          const tdActions = document.createElement("td");
+          
+          // Davamiyyət düyməsi
+          const toggleButton = document.createElement("button");
+          toggleButton.textContent = student.present ? "Davamiyyəti ləğv et" : "Davamiyyəti təsdiqlə";
+          toggleButton.onclick = () => toggleAttendance(index);
+
+          // Tələbəni silmək düyməsi
+          const deleteButton = document.createElement("button");
+          deleteButton.textContent = "Sil";
+          deleteButton.onclick = () => deleteStudent(index);
+
+          tdActions.appendChild(toggleButton);
+          tdActions.appendChild(deleteButton);
+
+          tr.appendChild(tdDay);
+          tr.appendChild(tdName);
+          tr.appendChild(tdStatus);
+          tr.appendChild(tdActions);
+          studentList.appendChild(tr);
+        });
+      }
+
+      function addStudent() {
+        const studentName = document.getElementById("studentName").value;
+        if (studentName.trim() === "") {
+          alert("Tələbənin adını daxil edin!");
+          return;
+        }
+        
+        const currentDate = new Date();
+        
+        // Yeni tələbəni əlavə et
+        students.push({ 
+          name: studentName, 
+          present: false, // Həmin an üçün yoxlama edilməyib
+          date: currentDate
+        });
+        
+        saveToLocalStorage();
+        updateStudentList();
+        document.getElementById("studentName").value = "";
+      }
+
+      // Davamiyyət təsdiqləmə/ləğv etmə
+      function toggleAttendance(index) {
+        students[index].present = !students[index].present;
+        saveToLocalStorage();
+        updateStudentList();
+      }
+
+      // Tələbəni sil
+      function deleteStudent(index) {
+        if (confirm("Bu tələbəni silmək istədiyinizə əminsiniz?")) {
+          students.splice(index, 1);
+          saveToLocalStorage();
+          updateStudentList();
+        }
+      }
+
+      function saveToLocalStorage() {
+        localStorage.setItem("students", JSON.stringify(students));
+      }
+
+      updateStudentList();
+    </script>
+  </body>
+</html>
